@@ -3,7 +3,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .env
-exports/pdf/*.pdf
 exports/pdf/*.html
 .DS_Store
 

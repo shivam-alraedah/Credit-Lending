@@ -42,7 +42,7 @@
   - asset-backed / murabaha details where relevant (purchase price, disclosed markup, ownership transfer)
   - disclosures and consent artifacts (timestamps + versions)
 
-### What’s cut for a 48-hour scope
+### Deferred in the initial reference scope
 - Full CDC, full probabilistic identity matching, full lineage catalog, and automated backfills.
 - Redshift marts (kept as a documented migration path).
 

@@ -9,7 +9,7 @@ Use this page to **navigate by topic**. For a **criteria → evidence** map of t
 | Goal | Document |
 | --- | --- |
 | Map design dimensions to docs and code | [`design_criteria_map.md`](design_criteria_map.md) |
-| End-to-end architecture (sources → Bronze → Silver → Gold → marts) | [`architecture.md`](architecture.md) |
+| **Architecture document** (sources → Bronze → Silver → Gold → marts) | [`architecture.md`](architecture.md) — entry point [`../ARCHITECTURE.md`](../ARCHITECTURE.md) |
 | AWS topology, RDS vs Redshift, ECR, DR, SLO-style monitoring, cost levers | [`aws_infrastructure.md`](aws_infrastructure.md) |
 | Launch vs post-launch, explicit trade-offs | [`tradeoffs_production_readiness.md`](tradeoffs_production_readiness.md) |
 | Phased delivery (30 / 60 / 90) | [`execution_plan_30_60_90.md`](execution_plan_30_60_90.md) |
@@ -57,4 +57,5 @@ Use this page to **navigate by topic**. For a **criteria → evidence** map of t
 | Unit tests | `../python/tests/` |
 | MWAA DAG skeletons | `../dags/` |
 | IFRS9 ECL extension | `../ifrs9/DESIGN.md` + `../ifrs9/*.sql` |
+| Submission PDFs (page-capped) | `../exports/pdf/architecture.pdf`, `plan_30_60_90.pdf`, `tradeoffs_and_product_analysis.pdf` |
 | PDF export script | `../scripts/export_pdfs.sh` |

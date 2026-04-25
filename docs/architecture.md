@@ -1,9 +1,10 @@
-# Unified Decision-Input Pipeline — Architecture
+# Unified Decision-Input Pipeline — System architecture specification
 
-**Author:** Data Engineering
-**Target:** Mal.ai Q2 2025 launch of 3 credit products (Personal Finance, BNPL, Card Alternative)
-**Compliance:** UAE Central Bank audit + Sharia-compliant product structures
-**Scale:** 10K decisions/day at launch → 100K/day within 12 months
+**Document type:** Architecture document (canonical technical specification for this repository)  
+**Author:** Data Engineering  
+**Target:** Mal.ai Q2 2025 launch of 3 credit products (Personal Finance, BNPL, Card Alternative)  
+**Compliance:** UAE Central Bank audit + Sharia-compliant product structures  
+**Scale:** 10K decisions/day at launch → 100K/day within 12 months  
 
 **See also:** Design dimensions → evidence: [`design_criteria_map.md`](design_criteria_map.md). Topical index of all docs: [`README.md`](README.md).
 
@@ -322,7 +323,9 @@ flowchart LR
 
 ---
 
-## 14. What's intentionally cut for the 48-hour scope
+## 14. Deferred scope (initial release vs roadmap)
+
+Out of scope for the **initial reference implementation** in this repo (planned next in `execution_plan_30_60_90.md`):
 
 - Probabilistic identity matching; blocking indexes.
 - Full CDC for internal profile (we use daily snapshot).
