@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mal.ai/schemas/fraud_request.v1.json",
+  "title": "Fraud scoring request (Mal -> Vendor)",
+  "type": "object",
+  "required": ["decision_id", "phone", "email", "context"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "decision_id": { "type": "string", "minLength": 1 },
+    "phone": { "type": "string", "pattern": "^\\+[0-9]{6,15}$" },
+    "email": { "type": "string", "format": "email" },
+    "context": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "product_type": { "type": "string" },
+        "amount_aed": { "type": "number", "minimum": 0 }
+      }
+    }
+  },
+  "additionalProperties": false
+}

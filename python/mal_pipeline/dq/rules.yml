@@ -1,0 +1,357 @@
+# Data Quality rules.
+#
+# Grouped by dimension. Each rule is one of two shapes:
+#   - sql_check : returns violating rows; runner compares COUNT to threshold.
+#   - sql_metric: returns a single scalar number; runner compares to threshold.
+#
+# Severity:
+#   - MUST_PASS : a single failure blocks Gold / decisioning.
+#   - WARN      : alerts on threshold breach; does not block.
+#
+# See docs/data_quality.md for the full framework.
+
+rules:
+  # =========================================================================
+  # COMPLETENESS
+  # =========================================================================
+
+  - rule_id: silver_fraud_score_has_response_ts
+    dimension: completeness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Every silver.fraud_score row has provider_response_ts populated.
+    sql_check: |
+      select decision_id
+      from silver.fraud_score
+      where provider_response_ts is null
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_fraud_score_has_score
+    dimension: completeness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Fraud score value is present (required by decision policy).
+    sql_check: |
+      select decision_id
+      from silver.fraud_score
+      where score is null
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_aecb_report_required_fields
+    dimension: completeness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: AECB row has non-null emirates_id, batch_id, report_ts.
+    sql_check: |
+      select aecb_report_id
+      from silver.aecb_report
+      where emirates_id is null
+         or bureau_batch_id is null
+         or report_ts is null
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_aecb_null_bureau_score_ratio_24h
+    dimension: completeness
+    severity: WARN
+    layer: silver
+    owner: credit-risk
+    description: Null bureau_score rate stays under 5% in the last 24h.
+    sql_metric: |
+      select (count(*) filter (where bureau_score is null))::numeric
+             / nullif(count(*),0)
+      from silver.aecb_report
+      where report_ts > now() - interval '24 hours'
+    threshold: { op: lt, value: 0.05 }
+
+  - rule_id: silver_aml_screen_required_fields
+    dimension: completeness
+    severity: MUST_PASS
+    layer: silver
+    owner: compliance
+    description: AML events have non-null event_id, screening_ts, status.
+    sql_check: |
+      select aml_event_id
+      from silver.aml_screen
+      where aml_event_id is null
+         or screening_ts is null
+         or status is null
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_customer_profile_has_internal_uuid
+    dimension: completeness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Every silver.customer_profile row has internal_uuid.
+    sql_check: |
+      select 1
+      from silver.customer_profile
+      where internal_uuid is null
+    threshold: { op: lte, value: 0 }
+
+  # =========================================================================
+  # UNIQUENESS
+  # =========================================================================
+
+  - rule_id: silver_identity_observation_duplicate_source_record
+    dimension: uniqueness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: No duplicates on (source, source_record_id).
+    sql_check: |
+      select source, source_record_id
+      from silver.identity_observation
+      group by 1, 2
+      having count(*) > 1
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_customer_duplicate_emirates_id
+    dimension: uniqueness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Emirates ID is unique across resolved customers.
+    sql_check: |
+      select emirates_id
+      from silver.customer
+      where emirates_id is not null
+      group by 1
+      having count(*) > 1
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_fraud_score_duplicate_decision_id
+    dimension: uniqueness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: decision_id never duplicated in silver.fraud_score.
+    sql_check: |
+      select decision_id
+      from silver.fraud_score
+      group by 1
+      having count(*) > 1
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: gold_decision_input_snapshot_dup_hash_per_decision
+    dimension: uniqueness
+    severity: MUST_PASS
+    layer: gold
+    owner: decisioning
+    description: Same sha256 never recorded twice for one decision_id.
+    sql_check: |
+      select decision_id, sha256_hex
+      from gold.decision_input_snapshot
+      group by 1, 2
+      having count(*) > 1
+    threshold: { op: lte, value: 0 }
+
+  # =========================================================================
+  # VALIDITY
+  # =========================================================================
+
+  - rule_id: silver_aecb_emirates_id_format
+    dimension: validity
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Emirates ID matches canonical regex.
+    sql_check: |
+      select aecb_report_id, emirates_id
+      from silver.aecb_report
+      where emirates_id !~ '^[0-9]{3}-[0-9]{4}-[0-9]{7}-[0-9]{1}$'
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_fraud_score_value_range
+    dimension: validity
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Fraud score within 0..1000.
+    sql_check: |
+      select decision_id
+      from silver.fraud_score
+      where score is not null and (score < 0 or score > 1000)
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_aml_status_in_enum
+    dimension: validity
+    severity: MUST_PASS
+    layer: silver
+    owner: compliance
+    description: AML status is one of the registered enum values.
+    sql_check: |
+      select aml_event_id, status
+      from silver.aml_screen
+      where status not in ('clear','potential_match','match','error','in_progress')
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_customer_link_confidence_range
+    dimension: validity
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Identity link confidence is in [0,1].
+    sql_check: |
+      select link_id
+      from silver.customer_link
+      where confidence < 0 or confidence > 1
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: gold_decision_requested_amount_positive
+    dimension: validity
+    severity: MUST_PASS
+    layer: gold
+    owner: decisioning
+    description: Requested amount is non-negative.
+    sql_check: |
+      select decision_id
+      from gold.decision
+      where requested_amount is not null and requested_amount < 0
+    threshold: { op: lte, value: 0 }
+
+  # =========================================================================
+  # CONSISTENCY
+  # =========================================================================
+
+  - rule_id: gold_decision_without_snapshot
+    dimension: consistency
+    severity: MUST_PASS
+    layer: gold
+    owner: decisioning
+    description: Every decision has at least one snapshot.
+    sql_check: |
+      select d.decision_id
+      from gold.decision d
+      left join gold.decision_input_snapshot s on s.decision_id = d.decision_id
+      where s.decision_id is null
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: gold_degraded_decision_has_reassessment_tracked
+    dimension: consistency
+    severity: WARN
+    layer: gold
+    owner: decisioning
+    description: Degraded-no-bureau approvals older than 24h have a reassessment row (or still pending).
+    sql_check: |
+      select d.decision_id
+      from gold.decision d
+      left join gold.decision_reassessment r on r.decision_id = d.decision_id
+      where d.policy_code = 'degraded_no_bureau'
+        and d.decision_status = 'approved'
+        and d.requested_at < now() - interval '24 hours'
+        and r.reassessment_id is null
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: mart_decision_volume_drift_vs_7d
+    dimension: consistency
+    severity: WARN
+    layer: mart
+    owner: data-engineering
+    description: Yesterday's decisions_total within +/- 50% of the prior 7-day mean.
+    sql_metric: |
+      with today as (
+        select coalesce(sum(decisions_total),0)::numeric as v
+        from mart.risk_portfolio_daily
+        where as_of_date = current_date - 1
+      ),
+      trailing as (
+        select avg(sum_d)::numeric as m
+        from (
+          select as_of_date, sum(decisions_total) as sum_d
+          from mart.risk_portfolio_daily
+          where as_of_date between current_date - 8 and current_date - 2
+          group by as_of_date
+        ) s
+      )
+      select coalesce(abs((today.v - trailing.m) / nullif(trailing.m,0)), 0) from today, trailing
+    threshold: { op: lt, value: 0.5 }
+
+  # =========================================================================
+  # TIMELINESS
+  # =========================================================================
+
+  - rule_id: silver_aml_reconcile_lag_minutes
+    dimension: timeliness
+    severity: WARN
+    layer: silver
+    owner: data-engineering
+    description: AML Bronze objects older than 10 minutes should already be in silver.aml_screen.
+    sql_metric: |
+      select coalesce(count(*), 0)::numeric
+      from audit.ingestion_object o
+      join audit.ingestion_run r on r.run_id = o.run_id
+      left join silver.aml_screen a on a.raw_object_id = o.object_id
+      where r.source = 'aml'
+        and o.created_at < now() - interval '10 minutes'
+        and a.aml_event_id is null
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: silver_internal_profile_daily_snapshot_present
+    dimension: timeliness
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: An internal_profile snapshot landed today.
+    sql_metric: |
+      select count(*)::numeric
+      from audit.ingestion_run
+      where source = 'internal_profile'
+        and status = 'SUCCEEDED'
+        and started_at::date = current_date
+    threshold: { op: gte, value: 1 }
+
+  - rule_id: silver_aecb_batch_received_by_sla
+    dimension: timeliness
+    severity: MUST_PASS
+    layer: silver
+    owner: credit-risk
+    description: AECB batch succeeded before 06:00 GST today.
+    sql_metric: |
+      select count(*)::numeric
+      from audit.ingestion_run
+      where source = 'aecb'
+        and status = 'SUCCEEDED'
+        and started_at::date = current_date
+        and started_at < (current_date::timestamp + interval '6 hours')
+    threshold: { op: gte, value: 1 }
+
+  # =========================================================================
+  # REFERENTIAL INTEGRITY (logical / cross-store)
+  # =========================================================================
+
+  - rule_id: silver_fraud_score_audit_object_linked
+    dimension: referential
+    severity: MUST_PASS
+    layer: silver
+    owner: data-engineering
+    description: Silver fraud_score rows reference existing audit objects.
+    sql_check: |
+      select decision_id
+      from silver.fraud_score s
+      where s.raw_req_object_id is not null
+        and not exists (
+          select 1 from audit.ingestion_object o where o.object_id = s.raw_req_object_id
+        )
+    threshold: { op: lte, value: 0 }
+
+  - rule_id: gold_snapshot_artifact_count_matches_inputs
+    dimension: referential
+    severity: MUST_PASS
+    layer: gold
+    owner: decisioning
+    description: Each snapshot has artifacts covering every populated input source.
+    sql_check: |
+      -- report snapshots where inputs populated >0 sources but no artifacts exist
+      select s.snapshot_id
+      from gold.decision_input_snapshot s
+      left join gold.decision_input_artifact a on a.snapshot_id = s.snapshot_id
+      where s.inputs is not null
+        and jsonb_typeof(s.inputs) = 'object'
+        and (select count(*) from jsonb_each(s.inputs) as e(k,v) where v is not null and v::text <> 'null') > 0
+      group by s.snapshot_id
+      having count(a.artifact_id) = 0
+    threshold: { op: lte, value: 0 }

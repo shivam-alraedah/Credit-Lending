@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mal.ai/schemas/fraud_response.v1.json",
+  "title": "Fraud scoring response (Vendor -> Mal)",
+  "type": "object",
+  "required": ["schema_version", "decision_id", "score", "risk_band", "provider_response_ts"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+    "decision_id": { "type": "string", "minLength": 1 },
+    "score": { "type": "number", "minimum": 0, "maximum": 1000 },
+    "risk_band": { "type": "string", "enum": ["low", "medium", "high", "block"] },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "provider_response_ts": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": true
+}

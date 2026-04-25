@@ -1,0 +1,9 @@
+boto3
+psycopg[binary]
+pyyaml
+requests
+python-dateutil
+uvicorn
+fastapi
+lxml
+jsonschema>=4.20

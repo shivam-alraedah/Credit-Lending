@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mal.ai/schemas/decision_input_snapshot.v1.json",
+  "title": "Gold decision input snapshot payload",
+  "type": "object",
+  "required": ["schema_version", "snapshot_id", "decision_id", "identity_summary", "inputs", "dq_summary"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+    "snapshot_id": { "type": "string", "format": "uuid" },
+    "decision_id": { "type": "string", "minLength": 1 },
+    "customer_key": { "type": ["string", "null"], "format": "uuid" },
+    "supersedes_snapshot_id": { "type": ["string", "null"], "format": "uuid" },
+    "model_rule_version": { "type": ["string", "null"] },
+    "identity_summary": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "inputs": {
+      "type": "object",
+      "required": ["fraud", "aecb", "aml", "internal_profile"],
+      "properties": {
+        "fraud": { "type": ["object", "null"] },
+        "aecb":  { "type": ["object", "null"] },
+        "aml":   { "type": ["object", "null"] },
+        "internal_profile": { "type": ["object", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "dq_summary": {
+      "type": "object",
+      "required": ["must_pass"],
+      "properties": {
+        "must_pass": { "type": "boolean" },
+        "failures":  { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

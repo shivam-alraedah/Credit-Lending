@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mal.ai/schemas/internal_profile.v1.json",
+  "title": "Internal customer profile row (CSV decoded)",
+  "type": "object",
+  "required": ["internal_uuid", "effective_ts"],
+  "properties": {
+    "internal_uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "full_name":   { "type": ["string", "null"] },
+    "dob":         { "type": ["string", "null"], "format": "date" },
+    "phone_e164":  { "type": ["string", "null"], "pattern": "^\\+[0-9]{6,15}$" },
+    "email_norm":  { "type": ["string", "null"], "format": "email" },
+    "emirates_id": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{3}-[0-9]{4}-[0-9]{7}-[0-9]{1}$"
+    },
+    "kyc_status":  { "type": ["string", "null"], "enum": ["pending", "verified", "rejected", null] },
+    "effective_ts":{ "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

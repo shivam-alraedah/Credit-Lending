@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mal.ai/schemas/aml_webhook.v1.json",
+  "title": "AML/PEP screening webhook payload",
+  "type": "object",
+  "required": ["schema_version", "event_id", "screening_ts", "subject", "status"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+    "event_id": { "type": "string", "minLength": 1 },
+    "screening_ts": { "type": "string", "format": "date-time" },
+    "subject": {
+      "type": "object",
+      "required": ["full_name", "dob"],
+      "properties": {
+        "full_name": { "type": "string", "minLength": 1 },
+        "dob": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string",
+      "enum": ["clear", "potential_match", "match", "error", "in_progress"]
+    },
+    "match_details": { "type": ["object", "null"] }
+  },
+  "additionalProperties": true
+}
